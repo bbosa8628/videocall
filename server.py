@@ -1,12 +1,19 @@
 import asyncio
 import websockets
 import random
+from fastapi import FastAPI
+from starlette.routing import WebSocketRoute
+from starlette.websockets import WebSocket
+
+# FastAPI app instance
+app = FastAPI()
 
 # Store connected users
 waiting_users = set()
 active_pairs = {}
 
-async def handler(websocket, path):
+# WebSocket handler for connections
+async def handler(websocket: WebSocket, path: str):
     global waiting_users, active_pairs
     user = websocket
 
@@ -16,7 +23,7 @@ async def handler(websocket, path):
         waiting_users.add(user)
         await find_pair(user)
 
-        async for message in user:
+        async for message in user.iter_text():
             data = message
 
             if user in active_pairs:
@@ -56,10 +63,10 @@ async def find_pair(user):
         active_pairs[partner] = user
 
         # Notify both users
-        await user.send('{"type": "pair", "message": "Connected to a stranger"}')
-        await partner.send('{"type": "pair", "message": "Connected to a stranger"}')
+        await user.send_text('{"type": "pair", "message": "Connected to a stranger"}')
+        await partner.send_text('{"type": "pair", "message": "Connected to a stranger"}')
     else:
-        await user.send('{"type": "wait", "message": "Waiting for a stranger..."}')
+        await user.send_text('{"type": "wait", "message": "Waiting for a stranger..."}')
 
 async def stop_call(user, paired_user):
     global active_pairs
@@ -76,17 +83,14 @@ async def stop_call(user, paired_user):
 
 async def send_message(user, message):
     try:
-        await user.send(message)
+        await user.send_text(message)
     except websockets.ConnectionClosed:
         pass
 
-async def main():
-    # Create and start the websocket server
-    start_server = websockets.serve(handler, "0.0.0.0", 6789)
+# Define WebSocket route for handling WebSocket connections
+app.add_route("/ws", WebSocketRoute(handler))
 
-    print("Signaling server started on ws://0.0.0.0:6789")
-    await start_server
-
-# Run the asyncio event loop
+# Run the FastAPI app with Uvicorn
 if __name__ == "__main__":
-    asyncio.run(main())
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=6789)
