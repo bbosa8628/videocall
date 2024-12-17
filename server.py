@@ -1,12 +1,11 @@
 import asyncio
 import websockets
-import os
+import random
 
 # Store connected users
 waiting_users = set()
 active_pairs = {}
 
-# WebSocket handler
 async def handler(websocket, path):
     global waiting_users, active_pairs
     user = websocket
@@ -43,7 +42,6 @@ async def handler(websocket, path):
     finally:
         print("Cleanup complete")
 
-# Pairing logic
 async def find_pair(user):
     global waiting_users, active_pairs
 
@@ -63,53 +61,32 @@ async def find_pair(user):
     else:
         await user.send('{"type": "wait", "message": "Waiting for a stranger..."}')
 
-# Stop call logic
 async def stop_call(user, paired_user):
     global active_pairs
     # Close the current connection for the user who clicked stop call
     if user in active_pairs:
         active_pairs.pop(user)
-
+    
     # Send end call message to the paired user
     await send_message(paired_user, '{"type": "end", "message": "Call ended by the other user."}')
-
+    
     # Optionally close the WebSocket connection for the user who clicked stop call
     await user.close()
     print("Call stopped for one user.")
 
-# Helper function to send messages
 async def send_message(user, message):
     try:
         await user.send(message)
     except websockets.ConnectionClosed:
         pass
 
-# Get the PORT environment variable for deployment
-PORT = int(os.environ.get("PORT", 6789))
+async def main():
+    # Create and start the websocket server
+    start_server = websockets.serve(handler, "0.0.0.0", 6789)
 
-# ASGI-compatible entry point
-async def asgi_app(scope, receive, send):
-    """
-    ASGI app entry point for Uvicorn. Used for hosting the WebSocket server.
-    """
-    if scope["type"] == "lifespan":
-        # Handle app startup/shutdown
-        await send({"type": "lifespan.startup.complete"})
-        await receive()
-        await send({"type": "lifespan.shutdown.complete"})
-    elif scope["type"] == "http":
-        # Reject HTTP requests
-        await send({"type": "http.response.start", "status": 404, "headers": []})
-        await send({"type": "http.response.body", "body": b"Not Found"})
-    elif scope["type"] == "websocket":
-        # Handle WebSocket connections
-        websocket = websockets.WebSocketServerProtocol()
-        await websocket.handshake(scope, receive, send)
-        await handler(websocket, None)
+    print("Signaling server started on ws://0.0.0.0:6789")
+    await start_server
 
-# Start the WebSocket server
-start_server = websockets.serve(handler, "0.0.0.0", PORT)
-
-print(f"Signaling server started on ws://0.0.0.0:{PORT}")
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+# Run the asyncio event loop
+if __name__ == "__main__":
+    asyncio.run(main())
