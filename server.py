@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 import random
+import os
 
 # Store connected users
 waiting_users = set()
@@ -80,8 +81,11 @@ async def send_message(user, message):
     except websockets.ConnectionClosed:
         pass
 
-start_server = websockets.serve(handler, "0.0.0.0", 6789)
+# Get the PORT environment variable for deployment (Render uses this)
+PORT = int(os.environ.get("PORT", 6789))
 
-print("Signaling server started on ws://0.0.0.0:6789")
+start_server = websockets.serve(handler, "0.0.0.0", PORT)
+
+print(f"Signaling server started on ws://0.0.0.0:{PORT}")
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
