@@ -81,10 +81,11 @@ async def send_message(user, message):
     except websockets.ConnectionClosed:
         pass
 
-# Use the PORT environment variable, default to 6789 for local testing
-PORT = int(os.environ.get("PORT", 6789))
-start_server = websockets.serve(handler, "0.0.0.0", PORT)
-
-print(f"Signaling server started on ws://0.0.0.0:{PORT}")
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+# Create the application callable for ASGI
+async def app(scope, receive, send):
+    if scope["type"] == "websocket":
+        websocket = websockets.WebSocketServerProtocol()
+        await websocket.accept(scope, receive, send)
+        await handler(websocket, None)
+    else:
+        raise NotImplementedError("Only WebSocket connections are supported.")
