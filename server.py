@@ -9,6 +9,10 @@ app = FastAPI()
 waiting_users: Set[WebSocket] = set()
 active_pairs: Dict[WebSocket, WebSocket] = {}
 
+# HTTP endpoint for health check
+@app.get("/")
+async def health_check():
+    return {"message": "Service is running"}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
