@@ -1,9 +1,24 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 import random
 from typing import Dict, Set
 
 # Initialize FastAPI app
 app = FastAPI()
+
+# Add CORS middleware to allow WebSocket connections from any origin
+origins = [
+    "http://localhost",  # Local development URL
+    "https://bbosa8628.pages.dev/video",  # Replace with your production URL or IP
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allow the listed origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Store connected users
 waiting_users: Set[WebSocket] = set()
