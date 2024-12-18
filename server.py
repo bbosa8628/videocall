@@ -9,7 +9,7 @@ app = FastAPI()
 # Add CORS middleware to allow WebSocket connections from any origin
 origins = [
     "http://localhost",  # Local development URL
-    "https://bbosa8628.pages.dev/video",  # Replace with your production URL or IP
+    "http://bbosa8628.pages.dev/video",  # Replace with your production URL or IP
 ]
 
 app.add_middleware(
