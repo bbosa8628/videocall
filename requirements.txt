@@ -1,3 +1,2 @@
 uvicorn
-websockets
-asyncio
+fastapi
