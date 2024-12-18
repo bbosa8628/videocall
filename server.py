@@ -3,13 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 import random
 from typing import Dict, Set
 
-# Initialize FastAPI app
+# Initialize FastAPI app 
 app = FastAPI()
 
 # Add CORS middleware to allow WebSocket connections from any origin
 origins = [
     "http://localhost",  # Local development URL
-    "http://bbosa8628.pages.dev/video",  # Replace with your production URL or IP
+    "172.66.47.138",  # Replace with your production URL or IP
+    "172.66.44.118",
+    "https://bbosa8628.pages.dev/video.html",
+    "http://bbosa8628.pages.dev/video.html",
+    "https://bbosa8628.pages.dev/video",
+    "http://bbosa8628.pages.dev/video"
 ]
 
 app.add_middleware(
