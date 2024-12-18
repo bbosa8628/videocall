@@ -1,19 +1,13 @@
 import asyncio
 import websockets
 import random
-from fastapi import FastAPI
-from starlette.routing import WebSocketRoute
-from starlette.websockets import WebSocket
-
-# FastAPI app instance
-app = FastAPI()
+import os
 
 # Store connected users
 waiting_users = set()
 active_pairs = {}
 
-# WebSocket handler for connections
-async def handler(websocket: WebSocket, path: str):
+async def handler(websocket, path):
     global waiting_users, active_pairs
     user = websocket
 
@@ -23,7 +17,7 @@ async def handler(websocket: WebSocket, path: str):
         waiting_users.add(user)
         await find_pair(user)
 
-        async for message in user.iter_text():
+        async for message in user:
             data = message
 
             if user in active_pairs:
@@ -41,10 +35,10 @@ async def handler(websocket: WebSocket, path: str):
         if user in waiting_users:
             waiting_users.remove(user)
         if user in active_pairs:
-            paired_user = active_pairs.pop(user)
-            active_pairs.pop(paired_user, None)
-            # Notify the paired user that the connection has ended
+            paired_user = active_pairs.pop(user, None)
             if paired_user:
+                active_pairs.pop(paired_user, None)
+                # Notify the paired user that the connection has ended
                 await send_message(paired_user, '{"type": "end"}')
     finally:
         print("Cleanup complete")
@@ -63,10 +57,10 @@ async def find_pair(user):
         active_pairs[partner] = user
 
         # Notify both users
-        await user.send_text('{"type": "pair", "message": "Connected to a stranger"}')
-        await partner.send_text('{"type": "pair", "message": "Connected to a stranger"}')
+        await user.send('{"type": "pair", "message": "Connected to a stranger"}')
+        await partner.send('{"type": "pair", "message": "Connected to a stranger"}')
     else:
-        await user.send_text('{"type": "wait", "message": "Waiting for a stranger..."}')
+        await user.send('{"type": "wait", "message": "Waiting for a stranger..."}')
 
 async def stop_call(user, paired_user):
     global active_pairs
@@ -83,14 +77,14 @@ async def stop_call(user, paired_user):
 
 async def send_message(user, message):
     try:
-        await user.send_text(message)
+        await user.send(message)
     except websockets.ConnectionClosed:
         pass
 
-# Define WebSocket route for handling WebSocket connections
-app.add_route("/ws", WebSocketRoute(handler))
+# Use the PORT environment variable, default to 6789 for local testing
+PORT = int(os.environ.get("PORT", 6789))
+start_server = websockets.serve(handler, "0.0.0.0", PORT)
 
-# Run the FastAPI app with Uvicorn
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=6789)
+print(f"Signaling server started on ws://0.0.0.0:{PORT}")
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
