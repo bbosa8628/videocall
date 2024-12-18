@@ -1,2 +1,4 @@
-uvicorn
+uvicorn[standard]
+websockets
 fastapi
+pydantic
